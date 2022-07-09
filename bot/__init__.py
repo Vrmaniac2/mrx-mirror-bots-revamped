@@ -13,8 +13,8 @@ from threading import Thread, Lock
 from dotenv import load_dotenv
 from pyrogram import Client, enums
 from asyncio import get_event_loop
-from megasdkrestclient import MegaSdkRestClient, errors as mega_err
-
+from megasdkrestclient import MegaSdkRestClient
+from megasdkrestclient import errors as mega_err
 main_loop = get_event_loop()
 
 faulthandler_enable()
@@ -28,22 +28,6 @@ basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     level=INFO)
 
 LOGGER = getLogger(__name__)
-
-CONFIG_FILE_URL = environ.get('CONFIG_FILE_URL')
-try:
-    if len(CONFIG_FILE_URL) == 0:
-        raise TypeError
-    try:
-        res = rget(CONFIG_FILE_URL)
-        if res.status_code == 200:
-            with open('config.env', 'wb+') as f:
-                f.write(res.content)
-        else:
-            log_error(f"Failed to download config.env {res.status_code}")
-    except Exception as e:
-        log_error(f"CONFIG_FILE_URL: {e}")
-except:
-    pass
 
 load_dotenv('config.env', override=True)
 
@@ -65,31 +49,22 @@ try:
         log_error(f"NETRC_URL: {e}")
 except:
     pass
-
 try:
-    TORRENT_TIMEOUT = getConfig('TORRENT_TIMEOUT')
-    if len(TORRENT_TIMEOUT) == 0:
+    SERVER_PORT = getConfig('SERVER_PORT')
+    if len(SERVER_PORT) == 0:
         raise KeyError
-    TORRENT_TIMEOUT = int(TORRENT_TIMEOUT)
 except:
-    TORRENT_TIMEOUT = None
+    SERVER_PORT = 80
 
-PORT = environ.get('PORT')
+PORT = environ.get('PORT', SERVER_PORT)
 Popen([f"gunicorn web.wserver:app --bind 0.0.0.0:{PORT}"], shell=True)
-srun(["last-api", "-d", "--profile=."])
+srun(["qbittorrent-nox", "-d", "--profile=."])
 if not ospath.exists('.netrc'):
     srun(["touch", ".netrc"])
 srun(["cp", ".netrc", "/root/.netrc"])
 srun(["chmod", "600", ".netrc"])
-trackers = check_output(["curl -Ns https://raw.githubusercontent.com/XIU2/TrackersListCollection/master/all.txt https://ngosang.github.io/trackerslist/trackers_all_http.txt https://newtrackon.com/api/all https://raw.githubusercontent.com/hezhijie0327/Trackerslist/main/trackerslist_tracker.txt | awk '$0' | tr '\n\n' ','"], shell=True).decode('utf-8').rstrip(',')
-if TORRENT_TIMEOUT is not None:
-    with open("a2c.conf", "a+") as a:
-        a.write(f"bt-stop-timeout={TORRENT_TIMEOUT}\n")
-with open("a2c.conf", "a+") as a:
-    a.write(f"bt-tracker={trackers}")
-srun(["extra-api", "--conf-path=/usr/src/app/a2c.conf"])
-alive = Popen(["python3", "alive.py"])
-sleep(0.5)
+srun(["chmod", "+x", "aria.sh"])
+srun(["./aria.sh"], shell=True)
 
 Interval = []
 DRIVES_NAMES = []
@@ -133,26 +108,29 @@ AUTHORIZED_CHATS = set()
 SUDO_USERS = set()
 AS_DOC_USERS = set()
 AS_MEDIA_USERS = set()
-EXTENSION_FILTER = set()
-LEECH_LOG = set()	
+EXTENTION_FILTER = set(['.torrent'])
+LEECH_LOG = set()
 MIRROR_LOGS = set()
-
 try:
     aid = getConfig('AUTHORIZED_CHATS')
-    aid = aid.split()
+    aid = aid.split(' ')
     for _id in aid:
-        AUTHORIZED_CHATS.add(int(_id.strip()))
+        AUTHORIZED_CHATS.add(int(_id))
 except:
     pass
 try:
     aid = getConfig('SUDO_USERS')
-    aid = aid.split()
+    aid = aid.split(' ')
     for _id in aid:
-        SUDO_USERS.add(int(_id.strip()))
+        SUDO_USERS.add(int(_id))
 except:
     pass
 try:
-    fx = getConfig('EXTENSION_FILTER')
+    fx = getConfig('EXTENTION_FILTER')
+    if len(fx) > 0:
+        fx = fx.split(' ')
+        for x in fx:
+            EXTENTION_FILTER.add(x.lower())
 except:
     pass
 try:
@@ -167,10 +145,6 @@ try:
     aid = aid.split(' ')
     for _id in aid:
         MIRROR_LOGS.add(int(_id))
-    if len(fx) > 0:
-        fx = fx.split()
-        for x in fx:
-            EXTENSION_FILTER.add(x.strip().lower())
 except:
     pass
 try:
@@ -185,9 +159,14 @@ try:
     TELEGRAM_API = getConfig('TELEGRAM_API')
     TELEGRAM_HASH = getConfig('TELEGRAM_HASH')
 except:
-    log_error("One or more env variables missing! Exiting now")
+    LOGGER.error("One or more env variables missing! Exiting now")
     exit(1)
-
+try:
+    AUTO_DELETE_UPLOAD_MESSAGE_DURATION = int(getConfig('AUTO_DELETE_UPLOAD_MESSAGE_DURATION'))
+except KeyError as e:
+    AUTO_DELETE_UPLOAD_MESSAGE_DURATION = -1
+    LOGGER.warning("AUTO_DELETE_UPLOAD_MESSAGE_DURATION var missing!")
+    pass
 LOGGER.info("Generating BOT_SESSION_STRING")
 app = Client(name='pyrogram', api_id=int(TELEGRAM_API), api_hash=TELEGRAM_HASH, bot_token=BOT_TOKEN, parse_mode=enums.ParseMode.HTML, no_updates=True)
 
@@ -203,7 +182,7 @@ except:
 def aria2c_init():
     try:
         log_info("Initializing Aria2c")
-        link = "https://linuxmint.com/torrents/lmde-5-cinnamon-64bit.iso.torrent"
+        link = "https://releases.ubuntu.com/21.10/ubuntu-21.10-desktop-amd64.iso.torrent"
         dire = DOWNLOAD_DIR.rstrip("/")
         aria2.add_uris([link], {'dir': dire})
         sleep(3)
@@ -214,42 +193,47 @@ def aria2c_init():
     except Exception as e:
         log_error(f"Aria2c initializing error: {e}")
 Thread(target=aria2c_init).start()
+sleep(1.5)
 
 try:
-    MEGA_KEY = getConfig('MEGA_API_KEY')
-    if len(MEGA_KEY) == 0:
-        raise KeyError
-except:
-    MEGA_KEY = None
-    LOGGER.info('MEGA_API_KEY not provided!')
-if MEGA_KEY is not None:
+    MEGAREST = getConfig('MEGAREST')
+    MEGAREST = MEGAREST.lower() == 'true'
+except KeyError:
+    MEGAREST = False
+try:
+    MEGA_API_KEY = getConfig("MEGA_API_KEY")
+except KeyError:
+    MEGA_API_KEY = None
+    LOGGER.info("MEGA API KEY NOT AVAILABLE")
+if MEGAREST is True:
     # Start megasdkrest binary
-    Popen(["megasdkrest", "--apikey", MEGA_KEY])
+    Popen(["megasdkrest", "--apikey", MEGA_API_KEY])
     sleep(3)  # Wait for the mega server to start listening
-    mega_client = MegaSdkRestClient('http://localhost:6090')
+    mega_client = MegaSdkRestClient("http://localhost:6090")
     try:
-        MEGA_USERNAME = getConfig('MEGA_EMAIL_ID')
-        MEGA_PASSWORD = getConfig('MEGA_PASSWORD')
-        if len(MEGA_USERNAME) > 0 and len(MEGA_PASSWORD) > 0:
+        MEGA_EMAIL_ID = getConfig("MEGA_EMAIL_ID")
+        MEGA_PASSWORD = getConfig("MEGA_PASSWORD")
+        if len(MEGA_EMAIL_ID) > 0 and len(MEGA_PASSWORD) > 0:
             try:
-                mega_client.login(MEGA_USERNAME, MEGA_PASSWORD)
+                mega_client.login(MEGA_EMAIL_ID, MEGA_PASSWORD)
             except mega_err.MegaSdkRestClientException as e:
-                log_error(e.message['message'])
+                logging.error(e.message["message"])
                 exit(0)
         else:
-            log_info("Mega API KEY provided but credentials not provided. Starting mega in anonymous mode!")
-    except:
-        log_info("Mega API KEY provided but credentials not provided. Starting mega in anonymous mode!")
+            LOGGER.info(
+                "Mega API KEY provided but credentials not provided. Starting mega in anonymous mode!"
+            )
+            MEGA_EMAIL_ID = None
+            MEGA_PASSWORD = None
+    except KeyError:
+        LOGGER.info(
+            "Mega API KEY provided but credentials not provided. Starting mega in anonymous mode!"
+        )
+        MEGA_EMAIL_ID = None
+        MEGA_PASSWORD = None
 else:
-    sleep(1.5)
-
-try:
-    BASE_URL = getConfig('BASE_URL_OF_BOT').rstrip("/")
-    if len(BASE_URL) == 0:
-        raise KeyError
-except:
-    log_warning('BASE_URL_OF_BOT not provided!')
-    BASE_URL = None
+    MEGA_EMAIL_ID = None
+    MEGA_PASSWORD = None
 try:
     DB_URI = getConfig('DATABASE_URL')
     if len(DB_URI) == 0:
@@ -359,6 +343,13 @@ try:
 except:
     RSS_DELAY = 900
 try:
+    TORRENT_TIMEOUT = getConfig('TORRENT_TIMEOUT')
+    if len(TORRENT_TIMEOUT) == 0:
+        raise KeyError
+    TORRENT_TIMEOUT = int(TORRENT_TIMEOUT)
+except:
+    TORRENT_TIMEOUT = None
+try:
     BUTTON_FOUR_NAME = getConfig('BUTTON_FOUR_NAME')
     BUTTON_FOUR_URL = getConfig('BUTTON_FOUR_URL')
     if len(BUTTON_FOUR_NAME) == 0 or len(BUTTON_FOUR_URL) == 0:
@@ -426,6 +417,13 @@ try:
 except:
     IGNORE_PENDING_REQUESTS = False
 try:
+    BASE_URL = getConfig('BASE_URL_OF_BOT').rstrip("/")
+    if len(BASE_URL) == 0:
+        raise KeyError
+except:
+    log_warning('BASE_URL_OF_BOT not provided!')
+    BASE_URL = None
+try:
     AS_DOCUMENT = getConfig('AS_DOCUMENT')
     AS_DOCUMENT = AS_DOCUMENT.lower() == 'true'
 except:
@@ -453,6 +451,43 @@ try:
 except:
     CRYPT = None
 try:
+    AUTHOR_NAME = getConfig('AUTHOR_NAME')
+    if len(AUTHOR_NAME) == 0:
+        AUTHOR_NAME = 'Arsh Sisodiya'
+except KeyError:
+    AUTHOR_NAME = 'Arsh Sisodiya'
+
+try:
+    AUTHOR_URL = getConfig('AUTHOR_URL')
+    if len(AUTHOR_URL) == 0:
+        AUTHOR_URL = 'https://t.me/heliosmirror'
+except KeyError:
+    AUTHOR_URL = 'https://t.me/heliosmirror'
+
+try:
+    GD_INFO = getConfig('GD_INFO')
+    if len(GD_INFO) == 0:
+        GD_INFO = 'Uploaded by Helios Mirror Bot'
+except KeyError:
+    GD_INFO = 'Uploaded by Helios Mirror Bot'
+
+try:
+    TITLE_NAME = getConfig('TITLE_NAME')
+    if len(TITLE_NAME) == 0:
+        TITLE_NAME = 'Helios-Mirror-Search'
+except KeyError:
+    TITLE_NAME = 'Helios-Mirror-Search'
+try:
+    SOURCE_LINK = getConfig('SOURCE_LINK')
+    SOURCE_LINK = SOURCE_LINK.lower() == 'true'
+except KeyError:
+    SOURCE_LINK = False
+try:
+    BOT_PM = getConfig('BOT_PM')
+    BOT_PM = BOT_PM.lower() == 'true'
+except KeyError:
+    BOT_PM = False
+try:
     APPDRIVE_EMAIL = getConfig('APPDRIVE_EMAIL')
     APPDRIVE_PASS = getConfig('APPDRIVE_PASS')
     if len(APPDRIVE_EMAIL) == 0 or len(APPDRIVE_PASS) == 0:
@@ -460,32 +495,7 @@ try:
 except KeyError:
     APPDRIVE_EMAIL = None
     APPDRIVE_PASS = None
-try:
-    FSUB = getConfig('FSUB')
-    FSUB = FSUB.lower() == 'true'
-except:
-    FSUB = False
-    LOGGER.info("Force Subscribe is disabled")
-try:
-    CHANNEL_USERNAME = getConfig("CHANNEL_USERNAME")
-    if len(CHANNEL_USERNAME) == 0:
-        raise KeyError
-except KeyError:
-    log_info("CHANNEL_USERNAME not provided! Using default @z_mirror")
-    CHANNEL_USERNAME = "Z_Mirror"
-try:
-    FSUB_CHANNEL_ID = getConfig("FSUB_CHANNEL_ID")
-    if len(FSUB_CHANNEL_ID) == 0:
-        raise KeyError
-    FSUB_CHANNEL_ID = int(FSUB_CHANNEL_ID)
-except KeyError:
-    log_info("CHANNEL_ID not provided! Using default id of @Z_Mirror")
-    FSUB_CHANNEL_ID = -1001232292892
-try:
-    BOT_PM = getConfig('BOT_PM')
-    BOT_PM = BOT_PM.lower() == 'true'
-except KeyError:
-    BOT_PM = False
+
 try:
     TOKEN_PICKLE_URL = getConfig('TOKEN_PICKLE_URL')
     if len(TOKEN_PICKLE_URL) == 0:
