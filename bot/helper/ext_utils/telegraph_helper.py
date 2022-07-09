@@ -72,10 +72,10 @@ class TelegraphHelper:
                     nxt_page += 1
             self.edit_page(
                 path = path[prev_page],
-                title = 'Z-Mirror-Bot Torrent Search',
+                title = 'Mr. X Mirror/Leech Zone Search',
                 content=content
             )
         return
 
 
-telegraph=TelegraphHelper('Z-Mirror-Bot', 'https://github.com/shuvam-dawn/MLTB-Custom-UI')
+telegraph=TelegraphHelper('Mr. X Mirror/Leech Zone', 'https://t.me/+HRCIHSg6X4AyMGVl')
