@@ -521,7 +521,7 @@ def _mirror(bot, message, isZip=False, extract=False, isQbit=False, isLeech=Fals
                 LOGGER.info(str(e))
                 if str(e).startswith('ERROR:'):
                     return sendMessage(str(e), bot, message)
-    elif isQbit and not is_magnet(link) and not ospath.exists(link):
+    elif isQbit and not is_magnet(link)
         if link.endswith('.torrent') or "https://api.telegram.org/file/" in link:
             content_type = None
         else:
