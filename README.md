@@ -1,3 +1,5 @@
+# Revamped By [Mr. X](https://telegram.dog/SuperGodX)
+
 # Features:
 - Leech-Log, Mirror-Log, Bot-PM
 - Force Sub to channel
