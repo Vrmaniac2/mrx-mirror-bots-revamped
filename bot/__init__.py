@@ -512,7 +512,7 @@ try:
     if len(CHANNEL_USERNAME) == 0:
         raise KeyError
 except KeyError:
-    log_info("CHANNEL_USERNAME not provided! Using default @salmanfarish26")
+    log_info("CHANNEL_USERNAME not provided! Using default set by Mr. X")
     CHANNEL_USERNAME = "@mrxmirrorworld"
 try:
     FSUB_CHANNEL_ID = getConfig("FSUB_CHANNEL_ID")
@@ -520,7 +520,7 @@ try:
         raise KeyError
     FSUB_CHANNEL_ID = int(FSUB_CHANNEL_ID)
 except KeyError:
-    log_info("CHANNEL_ID not provided! Using default id of @Z_Mirror")
+    log_info("CHANNEL_ID not provided! Using default id of @mrxmirrorzone")
     FSUB_CHANNEL_ID = -1001698691395
 try:
     TOKEN_PICKLE_URL = getConfig('TOKEN_PICKLE_URL')
