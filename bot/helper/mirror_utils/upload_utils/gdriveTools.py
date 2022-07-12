@@ -424,7 +424,7 @@ class GoogleDriveHelper:
                 file_path = ospath.join(local_path, file.get('name'))
                 current_dir_id = self.__create_directory(file.get('name'), parent_id)
                 self.__cloneFolder(file.get('name'), file_path, file.get('id'), current_dir_id)
-            elif not file.get('name').lower().endswith(tuple(EXTENTION_FILTER)):
+            elif not file.get('name').lower().endswith(tuple(EXTENSION_FILTER)):
                 self.__total_files += 1
                 self.transferred_size += int(file.get('size', 0))
                 self.__copyFile(file.get('id'), parent_id)
@@ -459,7 +459,7 @@ class GoogleDriveHelper:
                 current_dir_id = self.__create_directory(item, parent_id)
                 new_id = self.__upload_dir(current_file_name, current_dir_id)
                 self.__total_folders += 1
-            elif not item.lower().endswith(tuple(EXTENTION_FILTER)):
+            elif not item.lower().endswith(tuple(EXTENSION_FILTER)):
                 mime_type = get_mime_type(current_file_name)
                 file_name = current_file_name.split("/")[-1]
                 # current_file_name will have the full path
@@ -850,7 +850,7 @@ class GoogleDriveHelper:
                 mime_type = item.get('mimeType')
             if mime_type == self.__G_DRIVE_DIR_MIME_TYPE:
                 self.__download_folder(file_id, path, filename)
-            elif not ospath.isfile(path + filename) and not filename.lower().endswith(tuple(EXTENTION_FILTER)):
+            elif not ospath.isfile(path + filename) and not filename.lower().endswith(tuple(EXTENSION_FILTER)):
                 self.__download_file(file_id, path, filename, mime_type)
             if self.is_cancelled:
                 break
