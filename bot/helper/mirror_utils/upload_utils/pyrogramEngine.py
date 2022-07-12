@@ -10,11 +10,9 @@ from bot.helper.ext_utils.fs_utils import take_ss, get_media_info, get_path_size
 from bot.helper.ext_utils.bot_utils import get_readable_file_size
 LOGGER = getLogger(__name__)
 getLogger("pyrogram").setLevel(WARNING)
-
 VIDEO_SUFFIXES = ("MKV", "MP4", "MOV", "WMV", "3GP", "MPG", "WEBM", "AVI", "FLV", "M4V", "GIF")
 AUDIO_SUFFIXES = ("MP3", "M4A", "M4B", "FLAC", "WAV", "AIF", "OGG", "AAC", "DTS", "MID", "AMR", "MKA")
 IMAGE_SUFFIXES = ("JPG", "JPX", "PNG", "CR2", "TIF", "BMP", "JXR", "PSD", "ICO", "HEIC", "JPEG")
-
 class TgUploader:
 
     def __init__(self, name=None, listener=None):
@@ -88,8 +86,8 @@ class TgUploader:
                         with Image.open(thumb) as img:
                             width, height = img.size
                     else:
-                       width = 480
-                       height = 320
+                        width = 480
+                        height = 320
                     if not file_.upper().endswith(("MKV", "MP4")):
                         file_ = ospath.splitext(file_)[0] + '.mp4'
                         new_path = ospath.join(dirpath, file_)
