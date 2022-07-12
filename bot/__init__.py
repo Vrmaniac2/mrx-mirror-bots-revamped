@@ -133,7 +133,7 @@ AUTHORIZED_CHATS = set()
 SUDO_USERS = set()
 AS_DOC_USERS = set()
 AS_MEDIA_USERS = set()
-EXTENTION_FILTER = set(['.torrent'])
+EXTENSION_FILTER = set(['.torrent'])
 LEECH_LOG = set()
 MIRROR_LOGS = set()
 try:
@@ -151,11 +151,11 @@ try:
 except:
     pass
 try:
-    fx = getConfig('EXTENTION_FILTER')
+    fx = getConfig('EXTENSION_FILTER')
     if len(fx) > 0:
         fx = fx.split(' ')
         for x in fx:
-            EXTENTION_FILTER.add(x.lower())
+            EXTENSION_FILTER.add(x.lower())
 except:
     pass
 try:
